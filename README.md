@@ -2,10 +2,12 @@
 Script for generating text in the style of the oeuvre that is added as argument (in plain text).
 
 Steps that the script takes:
+
 A. Train on text:
  1. split in sentences (use list of abbreviations used in corpus)
  2. save sentence-initial and sentence-final words separately
  3. split the text in words, save all sequences of 2 words + 1 word (bigram model), and of 1 word + 1 word (unigram model)
+
 B. Generate new text:
  1. each new paragraph starts with a word that occurs as begin-of-sentence in the training text
  2. pick random word based on the previous two words. If those do not exist in the model, use only the previous word.
