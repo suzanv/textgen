@@ -6,9 +6,10 @@
 # 3. split the text in words, save all sequences of 2 words + 1 word (bigram model), and of 1 word + 1 word (unigram model)
 # Generate new text:
 # 1. each new paragraph starts with a word that occurs as begin-of-sentence in the training text
-# 2. pick random word based on the previous two words. If those do not exist in the model, use only the previous word.
-# 3. a paragraph is at least 30 words.
-# 4. after 30 words, random words are generated until a sentence ending is encountered.
+# 2. start generating sentences until the minimum paragraph length has reached
+# 3. the start of a sentence is a random word based on the last two words of the previous sentence.
+# 4. words are generated randomly using the previous two words in the sentence (bigram model). If those do not exist in the style dictionary, use only the previous word (unigram model).
+# 5. words are generated until a sentence ending is encountered.
 
 # the output is printed to inputfile.random[0-9]
 
@@ -113,7 +114,7 @@ def read_text(filename):
 
 def fill_up_dict(words):
     style_dict= dict()
-    print ("Full the dictionary with bigrams and unigrams...")
+    print ("Fill the dictionary with bigrams and unigrams...")
     for i, word in enumerate(words[:-2]):
 
 
@@ -150,7 +151,7 @@ def make_style_dict(filename):
     first_words = []
     last_words = dict()
     allwords = []
-    print ("Split in sentences and save first words...")
+    print ("Split in sentences and save first and last words...")
     for sentence in sentences:
         #print (sentence)
         words = tokenize(sentence)
@@ -171,43 +172,71 @@ def make_style_dict(filename):
     return style_dict,first_words,last_words
 
 
+def generate_sentence(style_dict,last_words,firstword):
+
+    sentence = []
+    word = firstword
+    sentence.append(word)
+
+    while not word in last_words:
+
+        # generate words until we encounter a word that is in the list of sentence-final words
+        if len(sentence) > 1:
+            # if we have context of 2 already, use bigram model
+            previous_word = sentence[-2] # index -2 in the array refers to the second last word in the array
+            if previous_word+" "+word in style_dict:
+                # bigram model
+
+                nextword=random.choice(style_dict[previous_word+" "+word])
+                print ("bigram model:", previous_word, word,"->",nextword)
+                word = nextword
+            else:
+                nextword=random.choice(style_dict[word])
+                print ("unigram model:",word,"->",nextword)
+                word = nextword
+        else:
+            # otherwise (beginning of sentence; we only have 1 word), use unigram model
+            nextword=random.choice(style_dict[word])
+            print ("unigram model:",word,"->",nextword)
+            word = nextword
+        sentence.append(word)
+        #print ("sentence:", sentence)
+
+    # generated word was a sentence-final word -> generate the first word for the next sentence
+    next_first_word = random.choice(style_dict[word])
+    return sentence, next_first_word
+
 
 def print_story(style_dict,first_words,last_words):
  #   print(style_dict)
    # print (first_words)
-    story=[]
+    paragraphs = []
 
     for parcount in range (number_of_paragraphs):
         #print(word)
+        sentences = []
         firstword = random.choice(first_words)
-        story.append(firstword)
-        word = firstword
-        for wordcount in range(minimum_paragraph_length):
-            if len(story) > 1:
-                previous_word = story[-2] # index -2 in the array refers to the second last word in the array
-                if previous_word+" "+word in style_dict:
-                    # bigram model
+        # the first word of the paragraph is a random first word
 
-                    nextword=random.choice(style_dict[previous_word+" "+word])
-                    print ("bigram model:", previous_word, word,"->",nextword)
-                    word = nextword
-                else:
-                    nextword=random.choice(style_dict[word])
-                    print ("unigram model:",word,"->",nextword)
-                    word = nextword
-            else:
-                word=random.choice(style_dict[word])
-            story.append(word)
-        while not word in last_words:
-            word=random.choice(style_dict[word])
-            story.append(word)
-        story.append("\n\n")
-    return " ".join(story)
+        wordcount = 1
+        while wordcount < minimum_paragraph_length:
+            # generate sentences as long as we haven't reached the minimum paragraph length
+            sentence,next_first_word = generate_sentence(style_dict,last_words,firstword)
+            # the start of a sentence is a random word based on the last two words of the previous sentence.
+            sentencetext = " ".join(sentence)
+            sentences.append(sentencetext)
+            firstword = next_first_word
+            wordcount += len(sentence)
+
+        paragraphtext = " ".join(sentences)
+        paragraphs.append(paragraphtext)
+
+    return "\n\n".join(paragraphs)
 
 
 
 def style_generator(fname):
-    print ("Read the oevre and make the style dictionary...")
+    print ("Read the oeuvre and make the style dictionary...")
     style_dict,first_words,last_words=make_style_dict(fname)
     print ("Create story...")
     story=print_story(style_dict,first_words,last_words)
